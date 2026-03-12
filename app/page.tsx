@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, Github, Linkedin, Mail, ExternalLink, Code, Download, ChevronRight } from 'lucide-react';
+import { Menu, X, Github, Linkedin, Mail, ExternalLink, Code, Download, ArrowUpRight, Circle, Briefcase, GraduationCap } from 'lucide-react';
 
 /**
  * HOOK: useOnScreen
  * Detects when an element is in the viewport to trigger animations.
- * FIX: Added ': any' to ref to satisfy TypeScript.
  */
-function useOnScreen(ref: any, rootMargin = "0px") {
+function useOnScreen(ref, rootMargin = "0px") {
   const [isIntersecting, setIntersecting] = useState(false);
 
   useEffect(() => {
@@ -19,7 +18,7 @@ function useOnScreen(ref: any, rootMargin = "0px") {
           observer.disconnect(); // Only trigger once
         }
       },
-      { rootMargin }
+      { rootMargin, threshold: 0.1 }
     );
     if (ref.current) {
       observer.observe(ref.current);
@@ -34,19 +33,18 @@ function useOnScreen(ref: any, rootMargin = "0px") {
 
 /**
  * COMPONENT: Section
- * Wrapper for animated sections.
- * FIX: Added ': any' to props.
+ * Enhanced with scaling and a buttery-smooth cubic-bezier transition.
  */
-const Section = ({ children, id, className = "" }: any) => {
+const Section = ({ children, id, className = "" }) => {
   const ref = useRef(null);
-  const isVisible = useOnScreen(ref, "-50px");
+  const isVisible = useOnScreen(ref, "-10%");
 
   return (
     <section 
       id={id} 
       ref={ref}
-      className={`transition-all duration-1000 ease-out transform ${
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+      className={`transition-all duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)] transform origin-bottom ${
+        isVisible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-16 scale-95"
       } ${className}`}
     >
       {children}
@@ -55,23 +53,117 @@ const Section = ({ children, id, className = "" }: any) => {
 };
 
 /**
- * COMPONENT: StarBackground
- * Interactive starfield with twinkling stars, parallax mouse movement, and shooting stars.
+ * COMPONENT: InteractiveCard
+ * Advanced 3D Hover Card with realistic glare, blend modes, and parallax depth.
  */
-const StarBackground = () => {
+const InteractiveCard = ({ children, className = "", innerClassName = "" }) => {
+  const cardRef = useRef(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    setMousePos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      width: rect.width,
+      height: rect.height
+    });
+  };
+
+  // Calculate 3D rotation based on mouse position
+  const rotX = isHovering ? ((mousePos.y / mousePos.height) - 0.5) * -12 : 0;
+  const rotY = isHovering ? ((mousePos.x / mousePos.width) - 0.5) * 12 : 0;
+
+  return (
+    <div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      className={`[perspective:1500px] ${className}`}
+    >
+      <div
+        className={`relative w-full h-full bg-white/[0.02] border border-white/10 backdrop-blur-md overflow-hidden transition-all duration-300 ease-out [transform-style:preserve-3d] ${
+          isHovering ? 'shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] border-white/20' : ''
+        } ${innerClassName}`}
+        style={{
+          transform: isHovering 
+            ? `rotateX(${rotX}deg) rotateY(${rotY}deg) scale3d(1.02, 1.02, 1.02)` 
+            : 'rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+        }}
+      >
+        {/* Content Wrapper for Parallax Depth Pop */}
+        <div 
+          className="relative w-full h-full z-10 transition-transform duration-300 ease-out"
+          style={{ transform: isHovering ? 'translateZ(20px)' : 'translateZ(0px)' }}
+        >
+          {children}
+        </div>
+
+        {/* Realistic Glare (Overlay Blend Mode) */}
+        <div 
+          className="absolute inset-0 z-20 pointer-events-none transition-opacity duration-300 mix-blend-overlay"
+          style={{
+            opacity: isHovering ? 0.8 : 0,
+            background: `radial-gradient(circle 350px at ${mousePos.x}px ${mousePos.y}px, rgba(255,255,255,0.4), transparent 80%)`
+          }}
+        />
+        
+        {/* Plasma Color Flare (Color Dodge Blend Mode) */}
+        <div 
+          className="absolute inset-0 z-20 pointer-events-none transition-opacity duration-300 mix-blend-color-dodge"
+          style={{
+            opacity: isHovering ? 0.6 : 0,
+            background: `radial-gradient(circle 450px at ${mousePos.x}px ${mousePos.y}px, rgba(244, 63, 94, 0.4), rgba(99, 102, 241, 0.3), transparent 70%)`
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * COMPONENT: AmbientBackground
+ * Vibrant, glowing plasma orbs for a colorful, eye-catching backdrop.
+ */
+const AmbientBackground = () => (
+  <div className="fixed inset-0 pointer-events-none z-[-5] overflow-hidden bg-[#050505]">
+    <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-indigo-600/20 blur-[150px] mix-blend-screen animate-[pulse_8s_ease-in-out_infinite]"></div>
+    <div className="absolute top-[30%] right-[-10%] w-[50%] h-[50%] rounded-full bg-rose-600/15 blur-[120px] mix-blend-screen animate-[pulse_10s_ease-in-out_infinite]"></div>
+    <div className="absolute bottom-[-20%] left-[10%] w-[50%] h-[50%] rounded-full bg-teal-500/15 blur-[150px] mix-blend-screen animate-[pulse_12s_ease-in-out_infinite]"></div>
+  </div>
+);
+
+/**
+ * COMPONENT: NoiseOverlay
+ * Subtle film grain to blend the vibrant colors smoothly.
+ */
+const NoiseOverlay = () => (
+  <div 
+    className="fixed inset-0 z-50 pointer-events-none opacity-[0.05] mix-blend-overlay" 
+    style={{ 
+      backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' 
+    }}
+  ></div>
+);
+
+/**
+ * COMPONENT: ParticleBackground
+ * Interactive floating particles.
+ */
+const ParticleBackground = () => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    // FIX: Cast to any to allow getContext usage without strict null checks
-    const canvas: any = canvasRef.current;
+    const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    let animationFrameId: any;
-    let stars: any[] = [];
-    let shootingStars: any[] = [];
+    let animationFrameId;
+    let particles = [];
     
-    // Mouse state for parallax
     let mouse = { x: 0, y: 0 };
     let targetMouse = { x: 0, y: 0 };
 
@@ -81,157 +173,56 @@ const StarBackground = () => {
       init();
     };
     
-    const handleMouseMove = (e: any) => {
-      // Calculate normalized mouse position from center (-1 to 1)
+    const handleMouseMove = (e) => {
       const x = (e.clientX / window.innerWidth) * 2 - 1;
       const y = (e.clientY / window.innerHeight) * 2 - 1;
-      targetMouse.x = x * 20; // Max shift amount
+      targetMouse.x = x * 20; 
       targetMouse.y = y * 20;
     };
 
     window.addEventListener('resize', resize);
     window.addEventListener('mousemove', handleMouseMove);
 
-    class Star {
-      x: number;
-      y: number;
-      size: number;
-      baseX: number;
-      baseY: number;
-      opacity: number;
-      blinkSpeed: number;
-      direction: number;
-      layer: number;
-
+    class Particle {
       constructor() {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 1.5 + 0.5;
+        this.size = Math.random() * 2 + 0.5;
         this.baseX = this.x;
         this.baseY = this.y;
-        this.opacity = Math.random();
-        this.blinkSpeed = Math.random() * 0.02 + 0.005;
-        this.direction = Math.random() > 0.5 ? 1 : -1;
-        this.layer = Math.ceil(Math.random() * 3); // Parallax layer
+        this.opacity = Math.random() * 0.5 + 0.1;
+        this.layer = Math.ceil(Math.random() * 3);
+        
+        const colors = ['rgba(244, 63, 94,', 'rgba(99, 102, 241,', 'rgba(45, 212, 191,', 'rgba(255, 255, 255,'];
+        this.color = colors[Math.floor(Math.random() * colors.length)];
       }
 
       update() {
-        // Twinkle
-        this.opacity += this.blinkSpeed * this.direction;
-        if (this.opacity >= 1 || this.opacity <= 0.2) {
-          this.direction *= -1;
-        }
+        const shiftX = mouse.x * (this.layer * 0.3);
+        const shiftY = mouse.y * (this.layer * 0.3);
 
-        // Parallax Movement (opposite to mouse)
-        // Layer 3 moves most, Layer 1 moves least
-        const shiftX = mouse.x * (this.layer * 0.5);
-        const shiftY = mouse.y * (this.layer * 0.5);
-
-        // Draw
-        ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+        ctx.fillStyle = `${this.color} ${this.opacity})`;
         ctx.beginPath();
         ctx.arc(this.baseX - shiftX, this.baseY - shiftY, this.size, 0, Math.PI * 2);
         ctx.fill();
       }
     }
 
-    class ShootingStar {
-      x: number;
-      y: number;
-      length: number;
-      speed: number;
-      angle: number;
-      opacity: number;
-      active: boolean;
-      delay: number;
-      timer: number;
-
-      constructor() {
-        this.x = 0;
-        this.y = 0;
-        this.length = 0;
-        this.speed = 0;
-        this.angle = 0;
-        this.opacity = 0;
-        this.active = false;
-        this.delay = 0;
-        this.timer = 0;
-        this.reset();
-      }
-
-      reset() {
-        this.x = Math.random() * canvas.width;
-        this.y = 0;
-        this.length = Math.random() * 80 + 10;
-        this.speed = Math.random() * 10 + 6;
-        this.angle = Math.PI / 4; // 45 degrees
-        this.opacity = 0;
-        this.active = false;
-        this.delay = Math.random() * 200 + 100; // Random start delay
-        this.timer = 0;
-      }
-
-      update() {
-        if (!this.active) {
-          this.timer++;
-          if (this.timer > this.delay) {
-            this.active = true;
-            this.opacity = 1;
-          }
-          return;
-        }
-
-        this.x -= this.speed * Math.cos(this.angle);
-        this.y += this.speed * Math.sin(this.angle);
-        this.opacity -= 0.01;
-
-        if (this.opacity <= 0 || this.x < 0 || this.y > canvas.height) {
-          this.reset();
-        } else {
-          // Draw trail
-          const endX = this.x + this.length * Math.cos(this.angle);
-          const endY = this.y - this.length * Math.sin(this.angle);
-          
-          const gradient = ctx.createLinearGradient(this.x, this.y, endX, endY);
-          gradient.addColorStop(0, `rgba(255, 255, 255, ${this.opacity})`);
-          gradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
-          
-          ctx.strokeStyle = gradient;
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(this.x, this.y);
-          ctx.lineTo(endX, endY);
-          ctx.stroke();
-        }
-      }
-    }
-
     const init = () => {
-      stars = [];
-      shootingStars = [];
-      
-      // Create static stars
-      const numStars = Math.floor((canvas.width * canvas.height) / 4000);
-      for (let i = 0; i < numStars; i++) {
-        stars.push(new Star());
-      }
-
-      // Create shooting stars
-      for (let i = 0; i < 2; i++) {
-        shootingStars.push(new ShootingStar());
+      particles = [];
+      const numParticles = Math.floor((canvas.width * canvas.height) / 7000); 
+      for (let i = 0; i < numParticles; i++) {
+        particles.push(new Particle());
       }
     };
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Smooth mouse movement
       mouse.x += (targetMouse.x - mouse.x) * 0.05;
       mouse.y += (targetMouse.y - mouse.y) * 0.05;
 
-      stars.forEach(star => star.update());
-      shootingStars.forEach(s => s.update());
-
+      particles.forEach(p => p.update());
       animationFrameId = requestAnimationFrame(animate);
     };
 
@@ -245,7 +236,7 @@ const StarBackground = () => {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none bg-slate-950" />;
+  return <canvas ref={canvasRef} className="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none" />; 
 };
 
 /**
@@ -263,58 +254,76 @@ const Navbar = () => {
 
   const navLinks = [
     { name: 'About', href: '#about' },
-    { name: 'Skills', href: '#skills' },
     { name: 'Projects', href: '#projects' },
+    { name: 'Experience', href: '#experience' },
+    { name: 'Education', href: '#education' },
     { name: 'Resume', href: '#resume' },
-    { name: 'Contact', href: '#contact' },
   ];
 
   return (
-    <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-slate-950/80 backdrop-blur-md shadow-lg border-b border-white/10' : 'bg-transparent'}`}>
-      <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-        <a href="#" className="text-2xl font-bold bg-gradient-to-r from-sky-400 to-blue-600 bg-clip-text text-transparent">
-          RU
-        </a>
+    <header className="fixed top-0 w-full z-50 transition-all duration-500 px-4 sm:px-6 pt-6">
+      <div className={`mx-auto max-w-6xl rounded-full transition-all duration-500 border ${
+        scrolled 
+          ? 'bg-[#050505]/70 backdrop-blur-2xl border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.6)]' 
+          : 'bg-transparent border-transparent'
+        }`}
+      >
+        <div className="px-4 md:px-6 py-4 flex justify-between items-center">
+          <a href="#" className="text-xl font-black tracking-tighter text-white hover:opacity-80 transition-opacity flex items-center gap-2 group">
+            <span className="w-3 h-3 rounded-full bg-gradient-to-tr from-rose-500 to-indigo-500 group-hover:scale-125 transition-transform"></span>
+            RAHUL.
+          </a>
 
-        {/* Desktop Menu */}
-        <nav className="hidden md:flex space-x-8">
-          {navLinks.map((link) => (
-            <a 
-              key={link.name} 
-              href={link.href} 
-              className="text-slate-300 hover:text-sky-400 font-medium transition-colors text-sm uppercase tracking-wider"
-            >
-              {link.name}
-            </a>
-          ))}
-        </nav>
-
-        {/* Mobile Menu Button */}
-        <button 
-          className="md:hidden text-slate-300 hover:text-white"
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </div>
-
-      {/* Mobile Menu */}
-      {isOpen && (
-        <div className="md:hidden bg-slate-900/95 backdrop-blur-xl border-t border-white/10 absolute w-full">
-          <div className="px-6 py-4 space-y-4 flex flex-col">
+          {/* Desktop Menu */}
+          <nav className="hidden lg:flex space-x-6 items-center bg-white/5 px-6 py-2.5 rounded-full border border-white/10 backdrop-blur-md">
             {navLinks.map((link) => (
               <a 
                 key={link.name} 
                 href={link.href} 
-                className="text-slate-300 hover:text-sky-400 block py-2 text-lg font-medium"
-                onClick={() => setIsOpen(false)}
+                className="text-slate-300 hover:text-rose-400 text-xs uppercase tracking-widest font-bold transition-colors"
               >
                 {link.name}
               </a>
             ))}
-          </div>
+          </nav>
+
+          <a href="https://wa.me/918868022329" target="_blank" rel="noopener noreferrer" className="hidden md:flex items-center gap-2 text-xs uppercase tracking-widest font-bold bg-gradient-to-r from-rose-500 via-indigo-500 to-teal-500 text-white px-6 py-3 rounded-full shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] hover:scale-105 transition-all">
+            Let's Talk <ArrowUpRight size={16} />
+          </a>
+
+          {/* Mobile Menu Button */}
+          <button 
+            className="lg:hidden text-slate-300 hover:text-white p-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            {isOpen ? <X size={20} strokeWidth={2} /> : <Menu size={20} strokeWidth={2} />}
+          </button>
         </div>
-      )}
+      </div>
+
+      {/* Mobile Menu Dropdown */}
+      <div className={`lg:hidden absolute top-[90px] left-4 right-4 rounded-3xl overflow-hidden transition-all duration-300 origin-top border border-white/10 ${isOpen ? 'scale-y-100 opacity-100 shadow-2xl' : 'scale-y-0 opacity-0 pointer-events-none'}`}>
+        <div className="bg-[#050505]/95 backdrop-blur-xl p-6 flex flex-col space-y-4">
+          {navLinks.map((link) => (
+            <a 
+              key={link.name} 
+              href={link.href} 
+              className="text-slate-200 hover:text-rose-400 hover:bg-white/5 rounded-2xl px-5 py-4 text-sm tracking-widest uppercase font-bold transition-all"
+              onClick={() => setIsOpen(false)}
+            >
+              {link.name}
+            </a>
+          ))}
+          <a 
+            href="https://wa.me/918868022329" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-center mt-2 bg-gradient-to-r from-rose-500 via-indigo-500 to-teal-500 text-white rounded-2xl px-5 py-4 text-sm tracking-widest uppercase font-bold transition-all"
+          >
+            Let's Talk
+          </a>
+        </div>
+      </div>
     </header>
   );
 };
@@ -326,7 +335,7 @@ const Hero = () => {
   const [text, setText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [loopNum, setLoopNum] = useState(0);
-  const [typingSpeed, setTypingSpeed] = useState(150);
+  const [typingSpeed, setTypingSpeed] = useState(120);
   
   const words = ["Software Engineer.", "Web Developer.", "Problem Solver."];
 
@@ -340,10 +349,10 @@ const Hero = () => {
         : fullText.substring(0, text.length + 1)
       );
 
-      setTypingSpeed(isDeleting ? 80 : 150);
+      setTypingSpeed(isDeleting ? 40 : 100);
 
       if (!isDeleting && text === fullText) {
-        setTimeout(() => setIsDeleting(true), 1500);
+        setTimeout(() => setIsDeleting(true), 2000);
       } else if (isDeleting && text === '') {
         setIsDeleting(false);
         setLoopNum(loopNum + 1);
@@ -355,39 +364,67 @@ const Hero = () => {
   }, [text, isDeleting, loopNum, typingSpeed]);
 
   return (
-    <section id="hero" className="min-h-screen flex items-center justify-center pt-20">
-      <div className="container mx-auto px-6 flex flex-col md:flex-row items-center gap-12">
-        <div className="md:w-1/2 text-center md:text-left z-10">
-          <p className="text-sky-400 font-medium mb-4 text-lg">Hello! I am Rahul Uniyal</p>
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-            A Web Developer Who <br />
-            <span className="bg-gradient-to-r from-sky-400 to-blue-600 bg-clip-text text-transparent">Codes with Logic,</span> <br />
-            <span className="bg-gradient-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent">Designs with Purpose.</span>
-          </h1>
-          <h2 className="text-2xl md:text-3xl text-slate-400 font-light h-10">
-            I'm a <span className="text-sky-300 border-r-2 border-sky-400 pr-1">{text}</span>
-          </h2>
-          <div className="mt-10 flex gap-4 justify-center md:justify-start">
-             <a href="#projects" className="px-8 py-3 bg-gradient-to-r from-sky-500 to-blue-600 rounded-full text-white font-semibold hover:shadow-[0_0_20px_rgba(56,189,248,0.5)] transition-all">
-               View Work
-             </a>
-             <a href="#contact" className="px-8 py-3 border border-slate-600 hover:border-sky-400 rounded-full text-slate-300 hover:text-white transition-all">
-               Contact Me
-             </a>
-          </div>
-        </div>
-        
-        <div className="md:w-1/2 flex justify-center z-10">
-          <div className="relative w-64 h-64 md:w-96 md:h-96 group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-sky-400 to-blue-600 rounded-full blur opacity-40 group-hover:opacity-75 transition duration-1000"></div>
-            <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-slate-800 shadow-2xl">
-              <img 
-                src="https://res.cloudinary.com/dpjdnoqii/image/upload/v1765538072/20251116_122306_1_svilxg.jpg" 
-                alt="Rahul Uniyal" 
-                className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-110"
-              />
+    <section id="hero" className="min-h-screen pt-32 pb-12 px-4 sm:px-6 flex items-center">
+      <div className="container mx-auto max-w-6xl">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* Main Hero Card (with new 3D logic) */}
+          <InteractiveCard className="lg:col-span-8" innerClassName="rounded-[2.5rem] p-6 sm:p-10 md:p-14 flex flex-col justify-center">
+            {/* Colorful Inner Glow */}
+            <div className="absolute top-0 right-0 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-gradient-to-bl from-rose-500/20 via-indigo-500/10 to-transparent blur-[80px] rounded-full opacity-60 -z-10"></div>
+            
+            <div className="flex flex-col items-start h-full">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-teal-500/30 bg-teal-500/10 backdrop-blur-md mb-6 md:mb-8 shadow-[0_0_15px_rgba(45,212,191,0.2)]">
+                <Circle size={8} className="fill-teal-400 text-teal-400 animate-pulse" />
+                <span className="text-teal-100 font-bold text-[10px] sm:text-xs tracking-widest uppercase">Available for Work</span>
+              </div>
+              
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-black text-white leading-[1.05] tracking-tighter mb-4 sm:mb-6">
+                A Web Dev Who <br />
+                <span className="bg-gradient-to-r from-rose-400 via-indigo-400 to-teal-400 bg-clip-text text-transparent drop-shadow-lg">Codes Logic,</span> <br />
+                <span>Designs Purpose.</span>
+              </h1>
+              
+              <h2 className="text-base sm:text-lg md:text-2xl text-slate-400 font-medium h-8 flex items-center tracking-tight mb-8 sm:mb-12">
+                I'm a&nbsp;<span className="text-rose-400 font-bold border-r-2 border-rose-400 pr-2 animate-[pulse_1s_infinite]">{text}</span>
+              </h2>
+              
+              <div className="flex flex-wrap gap-3 sm:gap-4 mt-auto">
+                 <a href="#projects" className="group relative px-6 sm:px-8 py-3.5 sm:py-4 bg-white text-slate-950 text-xs sm:text-sm uppercase tracking-widest font-black rounded-full overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)]">
+                   <span className="relative z-10 flex items-center justify-center gap-2">
+                     View Work <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                   </span>
+                 </a>
+                 <a href="#contact" className="px-6 sm:px-8 py-3.5 sm:py-4 rounded-full border border-white/20 bg-white/5 text-white text-xs sm:text-sm uppercase tracking-widest font-bold hover:bg-white/10 hover:border-indigo-500/50 transition-all hover:scale-105">
+                   Contact Me
+                 </a>
+              </div>
             </div>
-          </div>
+          </InteractiveCard>
+
+          {/* Profile Card */}
+          <InteractiveCard className="lg:col-span-4 min-h-[350px] sm:min-h-[400px]" innerClassName="rounded-[2.5rem] p-4 flex flex-col justify-between group">
+             <div className="absolute inset-0 bg-gradient-to-t from-indigo-600/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-10"></div>
+             
+             <div className="w-full h-full rounded-[2rem] overflow-hidden bg-[#111] relative z-0">
+               <img 
+                  src="https://res.cloudinary.com/dpjdnoqii/image/upload/v1765538072/20251116_122306_1_svilxg.jpg" 
+                  alt="Rahul Uniyal" 
+                  className="w-full h-full object-cover transform transition-transform duration-1000 group-hover:scale-110"
+                />
+             </div>
+             
+             <div className="absolute bottom-6 left-6 right-6 z-20 bg-[#050505]/70 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-2xl">
+                <div>
+                  <p className="text-white font-black text-xs sm:text-sm uppercase tracking-wider">Rahul Uniyal</p>
+                  <p className="text-rose-400 text-[10px] sm:text-xs font-bold tracking-widest mt-1">Based in India</p>
+                </div>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-rose-500 to-indigo-500 text-white flex items-center justify-center font-bold transform -rotate-45 group-hover:rotate-0 group-hover:shadow-[0_0_15px_rgba(244,63,94,0.6)] transition-all duration-500">
+                  <ArrowUpRight size={18} strokeWidth={2.5} />
+                </div>
+             </div>
+          </InteractiveCard>
+
         </div>
       </div>
     </section>
@@ -395,101 +432,61 @@ const Hero = () => {
 };
 
 /**
- * COMPONENT: About
+ * COMPONENT: About & Skills
  */
-const About = () => {
+const AboutSkills = () => {
+  const skills = [
+    { name: "C", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg" },
+    { name: "Java", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg" },
+    { name: "HTML5", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg" },
+    { name: "CSS3", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg" },
+    { name: "JavaScript", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" },
+    { name: "React", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" },
+    { name: "Node.js", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" },
+    { name: "Python", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" }
+  ];
+
   return (
-    <Section id="about" className="py-20">
-      <div className="container mx-auto px-6">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-white mb-16">
-          <span className="border-b-4 border-sky-500 pb-2">About Me</span>
-        </h2>
-        
-        <div className="max-w-5xl mx-auto bg-slate-900/50 backdrop-blur-md border border-white/5 p-8 md:p-12 rounded-2xl shadow-xl flex flex-col md:flex-row items-center gap-10">
-          <div className="md:w-3/4">
-            <p className="text-slate-300 text-lg leading-relaxed mb-6">
-              As a dedicated <span className="text-sky-400 font-semibold">MCA student</span> at Graphic Era Hill University, I am driven by a passion for crafting meaningful technology. My hands-on experience with <span className="text-white">ReactJS</span> and <span className="text-white">Node.js</span> has allowed me to build dynamic, real-time web applications, including collaborative platforms and innovative chatbot integrations.
-            </p>
-            <p className="text-slate-300 text-lg leading-relaxed">
-              Beyond my technical pursuits, I hold a deep admiration for the <span className="text-sky-400 font-semibold">Indian Defence Forces</span>, which inspires my commitment to discipline, resilience, and a service-oriented approach in all that I do. I am eager to bring this unique blend of technical skill and principled dedication to a forward-thinking team.
-            </p>
-          </div>
-          <div className="md:w-1/4 flex justify-center">
-             <div className="p-4 bg-slate-900 rounded-xl border border-sky-500/30 shadow-[0_0_15px_rgba(14,165,233,0.15)]">
-               <Code className="w-16 h-16 text-sky-400" />
+    <Section id="about" className="py-12 sm:py-20 px-4 sm:px-6">
+      <div className="container mx-auto max-w-6xl">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* About Bento */}
+          <InteractiveCard className="lg:col-span-6 xl:col-span-7" innerClassName="rounded-[2.5rem] p-6 sm:p-10 md:p-14 flex flex-col justify-center">
+             <span className="text-rose-400 font-black tracking-widest uppercase text-xs mb-6 sm:mb-8 flex items-center gap-3">
+               <span className="w-6 sm:w-8 h-[2px] bg-rose-500/50"></span> About
+             </span>
+             <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tighter mb-6 sm:mb-8 leading-tight">
+               Crafting logic into <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-indigo-400">seamless experiences.</span>
+             </h2>
+             <div className="space-y-4 sm:space-y-6">
+               <p className="text-slate-300 text-base sm:text-lg leading-relaxed font-light">
+                 As a dedicated <span className="text-white font-medium">MCA student</span> at Graphic Era Hill University, I am driven by a passion for crafting meaningful technology. My hands-on experience with <span className="text-indigo-300 font-semibold">ReactJS</span> and <span className="text-indigo-300 font-semibold">Node.js</span> has allowed me to build dynamic, real-time web applications.
+               </p>
+               <p className="text-slate-300 text-base sm:text-lg leading-relaxed font-light">
+                 Beyond code, I hold a deep admiration for the <span className="text-white font-medium">Indian Defence Forces</span>, inspiring discipline, resilience, and a service-oriented approach in all I do.
+               </p>
              </div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-};
+          </InteractiveCard>
 
-/**
- * COMPONENT: SkillCard
- * FIX: Added ': any' to props
- */
-const SkillCard = ({ icon, name, color }: any) => (
-  <div className="group relative bg-slate-900/50 border border-slate-700/50 p-6 rounded-xl flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:-translate-y-2 hover:bg-slate-800 hover:border-sky-500/50 hover:shadow-lg hover:shadow-sky-500/20">
-    <div className={`transform transition-transform duration-300 group-hover:scale-110 ${color ? '' : 'grayscale group-hover:grayscale-0'}`}>
-      {icon}
-    </div>
-    <span className="text-slate-300 font-medium group-hover:text-white">{name}</span>
-  </div>
-);
+          {/* High-Visibility Skills Bento */}
+          <InteractiveCard className="lg:col-span-6 xl:col-span-5" innerClassName="rounded-[2.5rem] p-6 sm:p-10 md:p-14 flex flex-col">
+             <span className="text-indigo-400 font-black tracking-widest uppercase text-xs mb-6 sm:mb-8 flex items-center gap-3">
+               <span className="w-6 sm:w-8 h-[2px] bg-indigo-500/50"></span> Expertise
+             </span>
+             <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-6 sm:mb-8">Tech Stack</h3>
+             
+             {/* Larger, visible grid for icons */}
+             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4 mt-auto">
+               {skills.map((skill, idx) => (
+                 <div key={idx} className="flex flex-col items-center justify-center gap-2 sm:gap-3 bg-white/5 border border-white/10 p-3 sm:p-4 rounded-2xl hover:bg-white/10 hover:border-indigo-500/50 hover:shadow-[0_0_25px_rgba(99,102,241,0.2)] transition-all duration-300 group">
+                   <img src={skill.icon} alt={skill.name} className="w-10 h-10 md:w-12 md:h-12 group-hover:scale-110 group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,0.6)] transition-all duration-300" />
+                   <span className="text-slate-200 font-bold text-[9px] sm:text-[10px] md:text-xs tracking-wider uppercase text-center">{skill.name}</span>
+                 </div>
+               ))}
+             </div>
+          </InteractiveCard>
 
-/**
- * COMPONENT: Skills
- */
-const Skills = () => {
-  return (
-    <Section id="skills" className="py-20">
-      <div className="container mx-auto px-6">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-white mb-16">
-          <span className="border-b-4 border-sky-500 pb-2">My Tech Stack</span>
-        </h2>
-        
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 max-w-6xl mx-auto">
-          <SkillCard 
-            icon={<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg" className="w-12 h-12" alt="C" />} 
-            name="C Programming" 
-            color 
-          />
-          <SkillCard 
-            icon={<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg" className="w-12 h-12" alt="Java" />} 
-            name="Java" 
-            color 
-          />
-           <SkillCard 
-            icon={<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg" className="w-12 h-12" alt="HTML" />} 
-            name="HTML5" 
-            color 
-          />
-           <SkillCard 
-            icon={<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg" className="w-12 h-12" alt="CSS" />} 
-            name="CSS3" 
-            color 
-          />
-          <SkillCard 
-            icon={<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" className="w-12 h-12" alt="JS" />} 
-            name="JavaScript" 
-            color 
-          />
-          <SkillCard 
-            icon={<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" className="w-12 h-12" alt="React" />} 
-            name="React" 
-            color 
-          />
-          <SkillCard 
-            icon={<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" className="w-12 h-12" alt="Node" />} 
-            name="Node.js" 
-            color 
-          />
-           <SkillCard 
-            icon={<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" className="w-12 h-12" alt="Python" />} 
-            name="Python" 
-            color 
-          />
         </div>
       </div>
     </Section>
@@ -498,32 +495,34 @@ const Skills = () => {
 
 /**
  * COMPONENT: ProjectCard
- * FIX: Added ': any' to props
  */
-const ProjectCard = ({ title, desc, tags, link }: any) => (
-  <div className="group bg-slate-900/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 hover:bg-slate-800 hover:border-sky-500/50 transition-all duration-300 flex flex-col h-full hover:shadow-[0_10px_30px_-10px_rgba(14,165,233,0.3)]">
-    <div className="flex justify-between items-start mb-4">
-      <div className="p-3 bg-sky-500/10 rounded-lg text-sky-400 group-hover:text-white group-hover:bg-sky-500 transition-colors">
-        <Code size={24} />
+const ProjectCard = ({ title, desc, tags, link }) => (
+  <InteractiveCard innerClassName="rounded-[2rem] p-6 sm:p-8 md:p-10 flex flex-col h-full group">
+    {/* Colorful hover backdrop */}
+    <div className="absolute top-0 right-0 w-32 h-32 sm:w-40 sm:h-40 bg-gradient-to-bl from-rose-500/20 to-indigo-500/20 blur-[50px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
+
+    <div className="relative z-10 flex justify-between items-start mb-6 sm:mb-8">
+      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-rose-400 group-hover:text-white group-hover:bg-rose-500 group-hover:border-rose-400 group-hover:shadow-[0_0_20px_rgba(244,63,94,0.5)] transition-all duration-500">
+        <Code size={20} className="sm:w-[24px] sm:h-[24px]" strokeWidth={2} />
       </div>
-      <a href={link} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">
-        <ExternalLink size={20} />
+      <a href={link} target="_blank" rel="noopener noreferrer" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300">
+        <ArrowUpRight size={18} className="sm:w-[20px] sm:h-[20px] transform group-hover:scale-110 group-hover:text-rose-300 transition-all" strokeWidth={2} />
       </a>
     </div>
     
-    <h3 className="text-xl font-bold text-white mb-3 group-hover:text-sky-400 transition-colors">{title}</h3>
-    <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
+    <h3 className="relative z-10 text-xl sm:text-2xl md:text-3xl font-extrabold text-white mb-3 sm:mb-4 tracking-tighter group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-rose-300 group-hover:to-indigo-300 transition-all duration-300">{title}</h3>
+    <p className="relative z-10 text-slate-400 text-sm sm:text-base mb-8 sm:mb-10 flex-grow leading-relaxed font-light">
       {desc}
     </p>
     
-    <div className="flex flex-wrap gap-2 mt-auto">
-      {tags.map((tag: any, idx: any) => (
-        <span key={idx} className="text-xs font-medium text-sky-300 bg-sky-500/10 px-3 py-1 rounded-full border border-sky-500/20">
+    <div className="relative z-10 flex flex-wrap gap-2 mt-auto">
+      {tags.map((tag, idx) => (
+        <span key={idx} className="text-[9px] sm:text-[10px] uppercase tracking-widest font-bold text-rose-200 bg-rose-500/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-rose-500/20 group-hover:border-rose-500/50 group-hover:bg-rose-500/20 transition-colors">
           {tag}
         </span>
       ))}
     </div>
-  </div>
+  </InteractiveCard>
 );
 
 /**
@@ -532,45 +531,61 @@ const ProjectCard = ({ title, desc, tags, link }: any) => (
 const Projects = () => {
   const projects = [
     {
+      title: "Campus Connect",
+      desc: "A comprehensive networking and resource-sharing platform built for university students to foster campus collaboration, share materials, and stay updated.",
+      tags: ["React.js", "Node.js", "Full Stack"],
+      link: "https://campus-connect-one-ochre.vercel.app/"
+    },
+    {
+      title: "Devbhoomi",
+      desc: "An immersive web platform designed to promote tourism, explore, and showcase the rich culture and heritage of Uttarakhand.",
+      tags: ["Web Dev", "UI/UX"],
+      link: "https://devbhoomi-two.vercel.app/"
+    },
+    {
       title: "FlavorFetch",
       desc: "A specialized Email Sender and Bulk Mailing System for a food delivery platform. Enables personalized promo emails and order updates.",
-      tags: ["HTML/CSS", "Express.js", "Node.js"],
+      tags: ["HTML/CSS", "Express.js"],
       link: "https://github.com/Threads8/Email-Sender"
     },
     {
       title: "Byte&Bite",
       desc: "Dynamic restaurant website featuring a floating AI chatbot button that expands into a full interface for better customer service.",
-      tags: ["React.js", "AI Integration", "CSS3"],
+      tags: ["React.js", "AI", "CSS3"],
       link: "https://github.com/Threads8/RE"
     },
     {
-      title: "Student Management System",
+      title: "Student DB System",
       desc: "Robust C-based system using custom data structures and file handling logic for efficient record management without external databases.",
-      tags: ["C", "Data Structures", "File Handling"],
+      tags: ["C", "Structures"],
       link: "https://github.com/Threads8/Student-Management-System"
-    },
-    {
-      title: "Ransomware Sim Tool",
-      desc: "Educational cybersecurity tool demonstrating encryption mechanisms. Created for research to understand malware behavior.",
-      tags: ["Python", "Cryptography", "Tkinter"],
-      link: "https://github.com/Threads8/Ransomware-Simulation-Tool"
     },
     {
       title: "Web Terminal",
       desc: "Browser-based terminal emulator providing real-time shell access via WebSockets. Mimics native terminal behavior.",
-      tags: ["React", "Node.js", "WebSockets", "xterm.js"],
+      tags: ["React", "WebSockets"],
       link: "https://github.com/Threads8/web-Terminal"
     }
   ];
 
   return (
-    <Section id="projects" className="py-20">
-      <div className="container mx-auto px-6">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-white mb-16">
-          <span className="border-b-4 border-sky-500 pb-2">Featured Projects</span>
-        </h2>
+    <Section id="projects" className="py-12 sm:py-20 px-4 sm:px-6">
+      <div className="container mx-auto max-w-6xl">
+        <div className="mb-10 sm:mb-16 flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
+          <div>
+            <span className="text-teal-400 font-black tracking-widest uppercase text-xs mb-4 sm:mb-6 flex items-center gap-3">
+              <span className="w-6 sm:w-8 h-[2px] bg-teal-500/50"></span> Selected Works
+            </span>
+            <h2 className="text-3xl sm:text-4xl md:text-6xl font-extrabold text-white tracking-tighter">
+              Featured Projects.
+            </h2>
+          </div>
+          <a href="https://github.com/Threads8" target="_blank" className="inline-flex items-center gap-2 text-xs sm:text-sm uppercase tracking-widest font-black text-teal-400 hover:text-teal-300 transition-colors group">
+            View Github <ArrowUpRight size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+          </a>
+        </div>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
           {projects.map((proj, idx) => (
             <ProjectCard key={idx} {...proj} />
           ))}
@@ -581,57 +596,66 @@ const Projects = () => {
 };
 
 /**
- * COMPONENT: Resume
+ * COMPONENT: Experience
  */
-const Resume = () => {
+const Experience = () => {
   return (
-    <Section id="resume" className="py-20">
-      <div className="container mx-auto px-6">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-white mb-16">
-          <span className="border-b-4 border-sky-500 pb-2">Resume</span>
-        </h2>
-
-        <div className="max-w-4xl mx-auto bg-slate-900/50 backdrop-blur-md border border-white/5 rounded-2xl p-8 md:p-12 relative overflow-hidden">
-          {/* Decorative Blur */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/10 blur-3xl rounded-full -mr-20 -mt-20"></div>
-
-          <div className="relative z-10">
-            <h3 className="text-2xl font-bold text-sky-400 mb-8 flex items-center gap-2">
-              <Download size={24} /> Education History
-            </h3>
-            
-            <div className="space-y-12 border-l-2 border-slate-700 pl-8 ml-3">
-              <div className="relative">
-                <div className="absolute -left-[41px] top-1 h-5 w-5 rounded-full border-4 border-slate-800 bg-sky-500"></div>
-                <h4 className="text-xl font-bold text-white">Masters of Computer Application</h4>
-                <p className="text-sky-400 font-medium">Graphic Era Hill University</p>
-                <div className="flex justify-between items-center mt-2 text-sm text-slate-400">
-                  <span>2024 - 2026</span>
-                  <span className="bg-slate-700/50 px-3 py-1 rounded-full text-xs">SGPA: 7.3/10</span>
-                </div>
-              </div>
-
-              <div className="relative">
-                <div className="absolute -left-[41px] top-1 h-5 w-5 rounded-full border-4 border-slate-800 bg-slate-500"></div>
-                <h4 className="text-xl font-bold text-white">Bachelor of Computer Application</h4>
-                <p className="text-sky-400 font-medium">Graphic Era Hill University</p>
-                <div className="flex justify-between items-center mt-2 text-sm text-slate-400">
-                  <span>2021 - 2024</span>
-                  <span className="bg-slate-700/50 px-3 py-1 rounded-full text-xs">GPA: 7.0/10</span>
-                </div>
-              </div>
+    <Section id="experience" className="py-12 sm:py-20 px-4 sm:px-6">
+      <div className="container mx-auto max-w-6xl">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <div className="lg:col-span-4 flex flex-col justify-between">
+            <div>
+              <span className="text-rose-400 font-black tracking-widest uppercase text-xs mb-4 sm:mb-6 flex items-center gap-3">
+                <span className="w-6 sm:w-8 h-[2px] bg-rose-500/50"></span> Career
+              </span>
+              <h2 className="text-3xl sm:text-4xl md:text-6xl font-extrabold text-white tracking-tighter mb-4 sm:mb-8">
+                Experience.
+              </h2>
+              <p className="text-slate-400 font-light text-sm sm:text-base mb-8 sm:mb-10 max-w-sm">
+                A look at my professional journey, internships, and hands-on industry experience.
+              </p>
             </div>
-
-            <div className="mt-12 text-center">
-              <a 
-                href="https://docs.google.com/document/d/1txyRzx8gJh6th8Uq3Rdmj7oHCh4-k6kphppwUJMwI-M/edit?usp=sharing" 
-                target="_blank"
-                className="inline-flex items-center gap-2 bg-white text-slate-900 font-bold py-3 px-8 rounded-full hover:bg-sky-400 hover:text-white transition-all transform hover:scale-105 shadow-lg"
-              >
-                View Full CV <ChevronRight size={18} />
-              </a>
+            
+            <div className="hidden lg:flex w-20 h-20 rounded-full bg-white/5 border border-white/10 items-center justify-center text-rose-400">
+               <Briefcase size={32} />
             </div>
           </div>
+
+          <InteractiveCard className="lg:col-span-8" innerClassName="rounded-[2.5rem] p-8 sm:p-10 md:p-14">
+            <div className="space-y-8 sm:space-y-10 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-[2px] before:bg-gradient-to-b before:from-transparent before:via-rose-500/30 before:to-transparent">
+              
+              {/* Item 1 */}
+              <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
+                <div className="flex items-center justify-center w-5 h-5 rounded-full border-[4px] border-[#050505] bg-rose-400 group-hover:bg-white group-hover:scale-150 group-hover:shadow-[0_0_15px_rgba(244,63,94,0.8)] transition-all duration-300 absolute left-0 md:left-1/2 md:-translate-x-1/2 shrink-0 z-10"></div>
+                
+                <div className="w-[calc(100%-2rem)] md:w-[calc(50%-2.5rem)] ml-8 md:ml-0 md:group-odd:pl-0 md:group-even:pr-0 text-left md:group-odd:text-right">
+                  <div className="flex flex-col md:group-odd:items-end bg-white/[0.03] p-5 sm:p-6 rounded-2xl border border-white/5 group-hover:border-rose-500/30 transition-colors shadow-lg">
+                    <span className="text-rose-400 font-mono font-bold text-[10px] sm:text-xs md:text-sm mb-2 block uppercase tracking-wider">Feb 2026 – Mar 2026</span>
+                    <h4 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white mb-1 sm:mb-2 tracking-tight">Full-stack Web Dev Intern</h4>
+                    <p className="text-slate-400 font-medium tracking-wide text-xs sm:text-sm mb-3 sm:mb-4">Prodigy InfoTech</p>
+                    <span className="inline-block bg-rose-500/10 text-rose-300 border border-rose-500/20 px-3 sm:px-4 py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest">Dehradun, India</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Item 2 */}
+              <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
+                <div className="flex items-center justify-center w-5 h-5 rounded-full border-[4px] border-[#050505] bg-indigo-500 group-hover:bg-white group-hover:scale-150 group-hover:shadow-[0_0_15px_rgba(99,102,241,0.8)] transition-all duration-300 absolute left-0 md:left-1/2 md:-translate-x-1/2 shrink-0 z-10"></div>
+                
+                <div className="w-[calc(100%-2rem)] md:w-[calc(50%-2.5rem)] ml-8 md:ml-0 md:group-odd:pl-0 md:group-even:pr-0 text-left md:group-odd:text-right">
+                  <div className="flex flex-col md:group-even:items-start md:group-odd:items-end bg-white/[0.03] p-5 sm:p-6 rounded-2xl border border-white/5 group-hover:border-indigo-500/30 transition-colors shadow-lg">
+                    <span className="text-indigo-400 font-mono font-bold text-[10px] sm:text-xs md:text-sm mb-2 block uppercase tracking-wider">Nov 2025 – Dec 2025</span>
+                    <h4 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white mb-1 sm:mb-2 tracking-tight">Web Development Intern</h4>
+                    <p className="text-slate-400 font-medium tracking-wide text-xs sm:text-sm mb-3 sm:mb-4">Prodigy InfoTech</p>
+                    <span className="inline-block bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-3 sm:px-4 py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest">Dehradun, India</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </InteractiveCard>
+          
         </div>
       </div>
     </Section>
@@ -639,33 +663,146 @@ const Resume = () => {
 };
 
 /**
+ * COMPONENT: Education
+ */
+const Education = () => {
+  return (
+    <Section id="education" className="py-12 sm:py-20 px-4 sm:px-6">
+      <div className="container mx-auto max-w-6xl">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <div className="lg:col-span-4 flex flex-col justify-between">
+            <div>
+              <span className="text-indigo-400 font-black tracking-widest uppercase text-xs mb-4 sm:mb-6 flex items-center gap-3">
+                <span className="w-6 sm:w-8 h-[2px] bg-indigo-500/50"></span> Academics
+              </span>
+              <h2 className="text-3xl sm:text-4xl md:text-6xl font-extrabold text-white tracking-tighter mb-4 sm:mb-8">
+                Education.
+              </h2>
+              <p className="text-slate-400 font-light text-sm sm:text-base mb-8 sm:mb-10 max-w-sm">
+                A brief overview of my academic journey and foundational knowledge base.
+              </p>
+            </div>
+            
+            <div className="hidden lg:flex w-20 h-20 rounded-full bg-white/5 border border-white/10 items-center justify-center text-indigo-400">
+               <GraduationCap size={32} />
+            </div>
+          </div>
+
+          <InteractiveCard className="lg:col-span-8" innerClassName="rounded-[2.5rem] p-8 sm:p-10 md:p-14">
+            <div className="space-y-8 sm:space-y-10 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-[2px] before:bg-gradient-to-b before:from-transparent before:via-indigo-500/30 before:to-transparent">
+              
+              {/* Item 1 */}
+              <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
+                <div className="flex items-center justify-center w-5 h-5 rounded-full border-[4px] border-[#050505] bg-teal-400 group-hover:bg-white group-hover:scale-150 group-hover:shadow-[0_0_15px_rgba(45,212,191,0.8)] transition-all duration-300 absolute left-0 md:left-1/2 md:-translate-x-1/2 shrink-0 z-10"></div>
+                
+                <div className="w-[calc(100%-2rem)] md:w-[calc(50%-2.5rem)] ml-8 md:ml-0 md:group-odd:pl-0 md:group-even:pr-0 text-left md:group-odd:text-right">
+                  <div className="flex flex-col md:group-odd:items-end bg-white/[0.03] p-5 sm:p-6 rounded-2xl border border-white/5 group-hover:border-teal-500/30 transition-colors shadow-lg">
+                    <span className="text-teal-400 font-mono font-bold text-[10px] sm:text-xs md:text-sm mb-2 block uppercase tracking-wider">2024 - 2026</span>
+                    <h4 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white mb-1 sm:mb-2 tracking-tight">Masters of Computer Application</h4>
+                    <p className="text-slate-400 font-medium tracking-wide text-xs sm:text-sm mb-3 sm:mb-4">Graphic Era Hill University</p>
+                    <span className="inline-block bg-teal-500/10 text-teal-300 border border-teal-500/20 px-3 sm:px-4 py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest">SGPA: 7.3/10</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Item 2 */}
+              <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
+                <div className="flex items-center justify-center w-5 h-5 rounded-full border-[4px] border-[#050505] bg-rose-500 group-hover:bg-white group-hover:scale-150 group-hover:shadow-[0_0_15px_rgba(244,63,94,0.8)] transition-all duration-300 absolute left-0 md:left-1/2 md:-translate-x-1/2 shrink-0 z-10"></div>
+                
+                <div className="w-[calc(100%-2rem)] md:w-[calc(50%-2.5rem)] ml-8 md:ml-0 md:group-odd:pl-0 md:group-even:pr-0 text-left md:group-odd:text-right">
+                  <div className="flex flex-col md:group-even:items-start md:group-odd:items-end bg-white/[0.03] p-5 sm:p-6 rounded-2xl border border-white/5 group-hover:border-rose-500/30 transition-colors shadow-lg">
+                    <span className="text-rose-400 font-mono font-bold text-[10px] sm:text-xs md:text-sm mb-2 block uppercase tracking-wider">2021 - 2024</span>
+                    <h4 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white mb-1 sm:mb-2 tracking-tight">Bachelor of Computer Application</h4>
+                    <p className="text-slate-400 font-medium tracking-wide text-xs sm:text-sm mb-3 sm:mb-4">Graphic Era Hill University</p>
+                    <span className="inline-block bg-rose-500/10 text-rose-300 border border-rose-500/20 px-3 sm:px-4 py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest">GPA: 7.0/10</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </InteractiveCard>
+          
+        </div>
+      </div>
+    </Section>
+  );
+};
+
+/**
+ * COMPONENT: Resume Download Section
+ */
+const ResumeDownload = () => {
+  return (
+    <Section id="resume" className="py-12 sm:py-20 px-4 sm:px-6">
+      <div className="container mx-auto max-w-4xl text-center">
+        <InteractiveCard innerClassName="rounded-[3rem] p-10 sm:p-16 md:p-20 relative overflow-hidden group">
+          
+          {/* Animated Holographic Glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-gradient-to-r from-rose-500/20 via-indigo-500/20 to-teal-500/20 blur-[60px] sm:blur-[80px] rounded-full -z-10 group-hover:opacity-100 opacity-50 transition-opacity duration-700 animate-[spin_10s_linear_infinite]"></div>
+
+          <span className="text-white/60 font-black tracking-widest uppercase text-[10px] sm:text-xs mb-4 block">
+             Get Full Details
+          </span>
+          <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white mb-4 sm:mb-6 tracking-tighter drop-shadow-lg">
+            Ready to Dive Deeper?
+          </h2>
+          <p className="text-slate-400 text-sm sm:text-lg mb-8 sm:mb-12 font-light max-w-xl mx-auto">
+            Grab a copy of my full resume to see a detailed breakdown of my professional experience, skills, and academic background.
+          </p>
+
+          <a 
+            href="https://drive.google.com/file/d/1l-GaC0E1p1K-QD1NGJT1BkfHquwZXNZ3/view?usp=sharing" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-rose-500 via-indigo-500 to-teal-500 text-white font-black py-4 sm:py-5 px-8 sm:px-10 rounded-full uppercase tracking-widest text-xs sm:text-sm hover:scale-105 hover:shadow-[0_0_40px_rgba(99,102,241,0.6)] transition-all"
+          >
+            <Download size={20} className="animate-bounce" /> Download Resume 
+          </a>
+        </InteractiveCard>
+      </div>
+    </Section>
+  );
+}
+
+/**
  * COMPONENT: Contact
  */
 const Contact = () => {
   return (
-    <Section id="contact" className="py-24 text-center">
-      <div className="container mx-auto px-6">
-        <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Get In Touch</h2>
-        <p className="text-slate-400 text-lg max-w-2xl mx-auto mb-10">
-          I'm currently seeking new opportunities and would love to hear from you. 
-          Whether you have a question or just want to say hi, feel free to reach out!
-        </p>
-        
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
-          <a 
-            href="mailto:rahuluniyal218@gmail.com" 
-            className="flex items-center gap-2 px-8 py-4 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-full transition-all shadow-[0_0_20px_rgba(14,165,233,0.3)] hover:shadow-[0_0_30px_rgba(14,165,233,0.5)]"
-          >
-            <Mail size={20} /> Say Hello
-          </a>
-          <a 
-            href="https://www.linkedin.com/in/rahul-u-a82621227/" 
-            target="_blank"
-            className="flex items-center gap-2 px-8 py-4 border border-slate-600 hover:border-sky-500 text-slate-300 hover:text-white font-bold rounded-full transition-all"
-          >
-            <Linkedin size={20} /> LinkedIn
-          </a>
-        </div>
+    <Section id="contact" className="py-12 sm:py-20 px-4 sm:px-6 relative mt-6 sm:mt-10">
+      <div className="container mx-auto max-w-6xl relative z-10">
+        <InteractiveCard innerClassName="rounded-[3rem] p-8 sm:p-16 md:p-24 text-center relative">
+          {/* Subtle glowing orb inside contact */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-gradient-to-r from-teal-500/10 to-rose-500/10 blur-[80px] sm:blur-[100px] rounded-full -z-10"></div>
+          
+          <span className="text-teal-400 font-black tracking-widest uppercase text-[10px] sm:text-xs mb-6 sm:mb-8 flex justify-center items-center gap-2 sm:gap-3">
+             <span className="w-6 sm:w-8 h-[2px] bg-teal-500/50"></span> Let's Work Together
+          </span>
+          <h2 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 mb-6 sm:mb-8 tracking-tighter leading-[1]">Let's Build<br/>Something.</h2>
+          <p className="text-slate-400 text-sm sm:text-lg mx-auto mb-10 sm:mb-16 font-light max-w-xl">
+            I'm currently seeking new opportunities. Whether you have a question or just want to say hi, I'll try my best to get back to you!
+          </p>
+          
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6">
+            <a 
+              href="https://wa.me/918868022329" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto flex justify-center items-center gap-3 px-8 sm:px-10 py-4 sm:py-5 bg-gradient-to-r from-rose-500 via-indigo-500 to-teal-500 text-white uppercase tracking-widest font-black text-xs rounded-full transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(99,102,241,0.5)]"
+            >
+              <Mail size={16} /> WhatsApp Me
+            </a>
+            <a 
+              href="https://www.linkedin.com/in/rahul-u-a82621227/" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto flex justify-center items-center gap-3 px-8 sm:px-10 py-4 sm:py-5 border border-white/20 bg-white/5 text-white uppercase tracking-widest font-bold text-xs rounded-full hover:bg-white/10 hover:border-indigo-500/50 transition-all hover:scale-105"
+            >
+              <Linkedin size={16} /> LinkedIn
+            </a>
+          </div>
+        </InteractiveCard>
       </div>
     </Section>
   );
@@ -676,17 +813,17 @@ const Contact = () => {
  */
 const Footer = () => {
   return (
-    <footer className="bg-slate-950 py-8 border-t border-slate-800">
-      <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
-        <p className="text-slate-500 text-sm">
-          &copy; 2025 Rahul Uniyal. Built with React & Tailwind.
+    <footer className="bg-[#020202] py-12 sm:py-16 mt-8 sm:mt-12 relative z-10 px-4 sm:px-6 border-t border-white/5">
+      <div className="container mx-auto max-w-6xl flex flex-col md:flex-row justify-between items-center gap-6 sm:gap-8">
+        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest text-center md:text-left">
+          &copy; {new Date().getFullYear()} Rahul Uniyal. <br className="md:hidden" />Built with React & Tailwind.
         </p>
-        <div className="flex space-x-6">
-          <a href="https://github.com/Threads8" target="_blank" className="text-slate-400 hover:text-white transition-colors">
-            <Github size={20} />
+        <div className="flex space-x-4">
+          <a href="https://github.com/Threads8" target="_blank" rel="noopener noreferrer" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-rose-400 hover:bg-rose-500/10 hover:shadow-[0_0_15px_rgba(244,63,94,0.3)] transition-all">
+            <Github size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} />
           </a>
-          <a href="https://www.linkedin.com/in/rahul-u-a82621227/" target="_blank" className="text-slate-400 hover:text-white transition-colors">
-            <Linkedin size={20} />
+          <a href="https://www.linkedin.com/in/rahul-u-a82621227/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-indigo-400 hover:bg-indigo-500/10 hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] transition-all">
+            <Linkedin size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} />
           </a>
         </div>
       </div>
@@ -699,21 +836,42 @@ const Footer = () => {
  */
 export default function App() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-sky-500/30 selection:text-sky-200 overflow-x-hidden">
-      {/* Global styles for smooth scroll */}
+    <div className="min-h-screen bg-[#050505] text-slate-300 font-sans selection:bg-rose-500/30 selection:text-rose-200 overflow-x-hidden relative">
       <style>{`
         html {
           scroll-behavior: smooth;
         }
+        /* Custom animated scrollbar */
+        ::-webkit-scrollbar {
+          width: 6px;
+        }
+        @media (min-width: 640px) {
+          ::-webkit-scrollbar {
+            width: 8px;
+          }
+        }
+        ::-webkit-scrollbar-track {
+          background: #050505; 
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #1e1b4b; 
+          border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #312e81; 
+        }
       `}</style>
-      <StarBackground />
+      <NoiseOverlay />
+      <AmbientBackground />
+      <ParticleBackground />
       <Navbar />
       <main>
         <Hero />
-        <About />
-        <Skills />
+        <AboutSkills />
         <Projects />
-        <Resume />
+        <Experience />
+        <Education />
+        <ResumeDownload />
         <Contact />
       </main>
       <Footer />
