@@ -32,6 +32,139 @@ function useOnScreen(ref, rootMargin = "0px") {
 }
 
 /**
+ * COMPONENT: CustomCursor
+ * Premium trailing ring cursor interaction.
+ */
+const CustomCursor = () => {
+  const dotRef = useRef(null);
+  const ringRef = useRef(null);
+  const requestRef = useRef(null);
+  
+  // Mouse position state
+  const mouse = useRef({ x: 0, y: 0 });
+  const ring = useRef({ x: 0, y: 0 });
+
+  const [isHovering, setIsHovering] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    // Check if device is touch-capable (don't show custom cursor on mobile)
+    if (typeof window !== 'undefined' && window.matchMedia("(pointer: coarse)").matches) return;
+    
+    setIsVisible(true);
+
+    const onMouseMove = (e) => {
+      mouse.current = { x: e.clientX, y: e.clientY };
+      
+      // Update dot instantly
+      if (dotRef.current) {
+        dotRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+      }
+
+      // Check if hovering over clickable
+      const target = e.target;
+      const isClickable = target.closest('a') || target.closest('button') || window.getComputedStyle(target).cursor === 'pointer';
+      setIsHovering(isClickable);
+    };
+
+    const updateRing = () => {
+      // Interpolate ring position for smooth trailing effect
+      ring.current.x += (mouse.current.x - ring.current.x) * 0.15;
+      ring.current.y += (mouse.current.y - ring.current.y) * 0.15;
+      
+      if (ringRef.current) {
+        ringRef.current.style.transform = `translate3d(${ring.current.x}px, ${ring.current.y}px, 0) scale(${isHovering ? 1.5 : 1})`;
+        ringRef.current.style.backgroundColor = isHovering ? 'rgba(244, 63, 94, 0.1)' : 'transparent';
+        ringRef.current.style.borderColor = isHovering ? 'rgba(244, 63, 94, 0.5)' : 'rgba(255, 255, 255, 0.5)';
+      }
+      
+      requestRef.current = requestAnimationFrame(updateRing);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    requestRef.current = requestAnimationFrame(updateRing);
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    };
+  }, [isHovering]);
+
+  if (!isVisible) return null;
+
+  return (
+    <>
+      <style>{`
+        body, a, button, [role="button"] { cursor: none !important; }
+      `}</style>
+      <div 
+        ref={ringRef}
+        className="fixed top-0 left-0 w-8 h-8 -ml-4 -mt-4 rounded-full border border-white/50 pointer-events-none z-[100] transition-colors duration-300 ease-out mix-blend-difference"
+      />
+      <div 
+        ref={dotRef}
+        className="fixed top-0 left-0 w-2 h-2 -ml-1 -mt-1 rounded-full bg-white pointer-events-none z-[100] mix-blend-difference"
+      />
+    </>
+  );
+};
+
+/**
+ * COMPONENT: Loader
+ * Premium loading sequence.
+ */
+const Loader = ({ onComplete }) => {
+  const [progress, setProgress] = useState(0);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const [status, setStatus] = useState("INITIALIZING SYSTEM...");
+
+  useEffect(() => {
+    let currentProgress = 0;
+    const interval = setInterval(() => {
+      currentProgress += Math.random() * 12;
+      if (currentProgress >= 100) {
+        currentProgress = 100;
+        clearInterval(interval);
+        setStatus("READY.");
+        setTimeout(() => setIsFadingOut(true), 600);
+        setTimeout(onComplete, 1400); // Wait for fade out
+      } else if (currentProgress > 70) {
+        setStatus("RENDERING ASSETS...");
+      } else if (currentProgress > 30) {
+        setStatus("LOADING MODULES...");
+      }
+      setProgress(Math.min(currentProgress, 100));
+    }, 150);
+
+    return () => clearInterval(interval);
+  }, [onComplete]);
+
+  return (
+    <div className={`fixed inset-0 z-[999] bg-[#020202] flex flex-col items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isFadingOut ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'}`}>
+      <div className="w-full max-w-sm px-8 relative">
+        {/* Animated Glow behind loader */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-rose-500/20 to-indigo-500/20 blur-[60px] rounded-full animate-pulse"></div>
+        
+        <div className="relative z-10 flex justify-between items-end mb-4">
+          <div className="flex flex-col">
+            <span className="text-white font-black tracking-tighter text-3xl">RAHUL.</span>
+            <span className="text-rose-400 font-bold tracking-widest text-[10px] uppercase mt-1 animate-pulse">{status}</span>
+          </div>
+          <span className="text-white font-mono text-xl">{Math.floor(progress)}%</span>
+        </div>
+        
+        <div className="relative z-10 w-full h-[2px] bg-white/10 overflow-hidden rounded-full">
+          <div 
+            className="h-full bg-gradient-to-r from-rose-500 via-indigo-500 to-teal-500 transition-all duration-200 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
  * COMPONENT: Section
  * Enhanced with scaling and a buttery-smooth cubic-bezier transition.
  */
@@ -288,7 +421,7 @@ const Navbar = () => {
           </nav>
 
           <a href="https://wa.me/918868022329" target="_blank" rel="noopener noreferrer" className="hidden md:flex items-center gap-2 text-xs uppercase tracking-widest font-bold bg-gradient-to-r from-rose-500 via-indigo-500 to-teal-500 text-white px-6 py-3 rounded-full shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] hover:scale-105 transition-all">
-            Let's Talk <ArrowUpRight size={16} />
+            Let&apos;s Talk <ArrowUpRight size={16} />
           </a>
 
           {/* Mobile Menu Button */}
@@ -320,7 +453,7 @@ const Navbar = () => {
             rel="noopener noreferrer"
             className="text-center mt-2 bg-gradient-to-r from-rose-500 via-indigo-500 to-teal-500 text-white rounded-2xl px-5 py-4 text-sm tracking-widest uppercase font-bold transition-all"
           >
-            Let's Talk
+            Let&apos;s Talk
           </a>
         </div>
       </div>
@@ -364,7 +497,7 @@ const Hero = () => {
   }, [text, isDeleting, loopNum, typingSpeed]);
 
   return (
-    <section id="hero" className="min-h-screen pt-32 pb-12 px-4 sm:px-6 flex items-center">
+    <section id="hero" className="min-h-screen pt-32 pb-12 px-4 sm:px-6 flex items-center relative z-10">
       <div className="container mx-auto max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
@@ -386,7 +519,7 @@ const Hero = () => {
               </h1>
               
               <h2 className="text-base sm:text-lg md:text-2xl text-slate-400 font-medium h-8 flex items-center tracking-tight mb-8 sm:mb-12">
-                I'm a&nbsp;<span className="text-rose-400 font-bold border-r-2 border-rose-400 pr-2 animate-[pulse_1s_infinite]">{text}</span>
+                I&apos;m a&nbsp;<span className="text-rose-400 font-bold border-r-2 border-rose-400 pr-2 animate-[pulse_1s_infinite]">{text}</span>
               </h2>
               
               <div className="flex flex-wrap gap-3 sm:gap-4 mt-auto">
@@ -447,7 +580,7 @@ const AboutSkills = () => {
   ];
 
   return (
-    <Section id="about" className="py-12 sm:py-20 px-4 sm:px-6">
+    <Section id="about" className="py-12 sm:py-20 px-4 sm:px-6 relative z-10">
       <div className="container mx-auto max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
@@ -569,7 +702,7 @@ const Projects = () => {
   ];
 
   return (
-    <Section id="projects" className="py-12 sm:py-20 px-4 sm:px-6">
+    <Section id="projects" className="py-12 sm:py-20 px-4 sm:px-6 relative z-10">
       <div className="container mx-auto max-w-6xl">
         <div className="mb-10 sm:mb-16 flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
           <div>
@@ -580,7 +713,7 @@ const Projects = () => {
               Featured Projects.
             </h2>
           </div>
-          <a href="https://github.com/Threads8" target="_blank" className="inline-flex items-center gap-2 text-xs sm:text-sm uppercase tracking-widest font-black text-teal-400 hover:text-teal-300 transition-colors group">
+          <a href="https://github.com/Threads8" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs sm:text-sm uppercase tracking-widest font-black text-teal-400 hover:text-teal-300 transition-colors group">
             View Github <ArrowUpRight size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
           </a>
         </div>
@@ -600,7 +733,7 @@ const Projects = () => {
  */
 const Experience = () => {
   return (
-    <Section id="experience" className="py-12 sm:py-20 px-4 sm:px-6">
+    <Section id="experience" className="py-12 sm:py-20 px-4 sm:px-6 relative z-10">
       <div className="container mx-auto max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
@@ -667,7 +800,7 @@ const Experience = () => {
  */
 const Education = () => {
   return (
-    <Section id="education" className="py-12 sm:py-20 px-4 sm:px-6">
+    <Section id="education" className="py-12 sm:py-20 px-4 sm:px-6 relative z-10">
       <div className="container mx-auto max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
@@ -734,7 +867,7 @@ const Education = () => {
  */
 const ResumeDownload = () => {
   return (
-    <Section id="resume" className="py-12 sm:py-20 px-4 sm:px-6">
+    <Section id="resume" className="py-12 sm:py-20 px-4 sm:px-6 relative z-10">
       <div className="container mx-auto max-w-4xl text-center">
         <InteractiveCard innerClassName="rounded-[3rem] p-10 sm:p-16 md:p-20 relative overflow-hidden group">
           
@@ -755,7 +888,7 @@ const ResumeDownload = () => {
             href="https://drive.google.com/file/d/1l-GaC0E1p1K-QD1NGJT1BkfHquwZXNZ3/view?usp=sharing" 
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-rose-500 via-indigo-500 to-teal-500 text-white font-black py-4 sm:py-5 px-8 sm:px-10 rounded-full uppercase tracking-widest text-xs sm:text-sm hover:scale-105 hover:shadow-[0_0_40px_rgba(99,102,241,0.6)] transition-all"
+            className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-rose-500 via-indigo-500 to-teal-500 text-white font-black py-4 sm:py-5 px-8 sm:px-10 rounded-full uppercase tracking-widest text-xs sm:text-sm hover:scale-105 hover:shadow-[0_0_40px_rgba(99,102,241,0.6)] transition-all relative z-20"
           >
             <Download size={20} className="animate-bounce" /> Download Resume 
           </a>
@@ -770,21 +903,21 @@ const ResumeDownload = () => {
  */
 const Contact = () => {
   return (
-    <Section id="contact" className="py-12 sm:py-20 px-4 sm:px-6 relative mt-6 sm:mt-10">
+    <Section id="contact" className="py-12 sm:py-20 px-4 sm:px-6 relative mt-6 sm:mt-10 z-10">
       <div className="container mx-auto max-w-6xl relative z-10">
         <InteractiveCard innerClassName="rounded-[3rem] p-8 sm:p-16 md:p-24 text-center relative">
           {/* Subtle glowing orb inside contact */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-gradient-to-r from-teal-500/10 to-rose-500/10 blur-[80px] sm:blur-[100px] rounded-full -z-10"></div>
           
           <span className="text-teal-400 font-black tracking-widest uppercase text-[10px] sm:text-xs mb-6 sm:mb-8 flex justify-center items-center gap-2 sm:gap-3">
-             <span className="w-6 sm:w-8 h-[2px] bg-teal-500/50"></span> Let's Work Together
+             <span className="w-6 sm:w-8 h-[2px] bg-teal-500/50"></span> Let&apos;s Work Together
           </span>
-          <h2 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 mb-6 sm:mb-8 tracking-tighter leading-[1]">Let's Build<br/>Something.</h2>
+          <h2 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 mb-6 sm:mb-8 tracking-tighter leading-[1]">Let&apos;s Build<br/>Something.</h2>
           <p className="text-slate-400 text-sm sm:text-lg mx-auto mb-10 sm:mb-16 font-light max-w-xl">
-            I'm currently seeking new opportunities. Whether you have a question or just want to say hi, I'll try my best to get back to you!
+            I&apos;m currently seeking new opportunities. Whether you have a question or just want to say hi, I&apos;ll try my best to get back to you!
           </p>
           
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 relative z-20">
             <a 
               href="https://wa.me/918868022329" 
               target="_blank"
@@ -818,7 +951,7 @@ const Footer = () => {
         <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest text-center md:text-left">
           &copy; {new Date().getFullYear()} Rahul Uniyal. <br className="md:hidden" />Built with React & Tailwind.
         </p>
-        <div className="flex space-x-4">
+        <div className="flex space-x-4 relative z-20">
           <a href="https://github.com/Threads8" target="_blank" rel="noopener noreferrer" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-rose-400 hover:bg-rose-500/10 hover:shadow-[0_0_15px_rgba(244,63,94,0.3)] transition-all">
             <Github size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} />
           </a>
@@ -835,13 +968,14 @@ const Footer = () => {
  * MAIN APP
  */
 export default function App() {
+  const [isLoading, setIsLoading] = useState(true);
+
   return (
     <div className="min-h-screen bg-[#050505] text-slate-300 font-sans selection:bg-rose-500/30 selection:text-rose-200 overflow-x-hidden relative">
       <style>{`
         html {
           scroll-behavior: smooth;
         }
-        /* Custom animated scrollbar */
         ::-webkit-scrollbar {
           width: 6px;
         }
@@ -861,20 +995,34 @@ export default function App() {
           background: #312e81; 
         }
       `}</style>
-      <NoiseOverlay />
-      <AmbientBackground />
-      <ParticleBackground />
-      <Navbar />
-      <main>
-        <Hero />
-        <AboutSkills />
-        <Projects />
-        <Experience />
-        <Education />
-        <ResumeDownload />
-        <Contact />
-      </main>
-      <Footer />
+      
+      {isLoading ? (
+        <Loader onComplete={() => setIsLoading(false)} />
+      ) : (
+        <div className="animate-[fadeInScale_1s_ease-out_forwards]">
+          <style>{`
+            @keyframes fadeInScale {
+              from { opacity: 0; transform: scale(0.98); }
+              to { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+          <CustomCursor />
+          <NoiseOverlay />
+          <AmbientBackground />
+          <ParticleBackground />
+          <Navbar />
+          <main>
+            <Hero />
+            <AboutSkills />
+            <Projects />
+            <Experience />
+            <Education />
+            <ResumeDownload />
+            <Contact />
+          </main>
+          <Footer />
+        </div>
+      )}
     </div>
   );
 }
