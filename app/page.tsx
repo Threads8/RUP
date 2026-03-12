@@ -7,7 +7,7 @@ import { Menu, X, Github, Linkedin, Mail, ExternalLink, Code, Download, ArrowUpR
  * HOOK: useOnScreen
  * Detects when an element is in the viewport to trigger animations.
  */
-function useOnScreen(ref, rootMargin = "0px") {
+function useOnScreen(ref: any, rootMargin: string = "0px") {
   const [isIntersecting, setIntersecting] = useState(false);
 
   useEffect(() => {
@@ -36,9 +36,9 @@ function useOnScreen(ref, rootMargin = "0px") {
  * Premium trailing ring cursor interaction.
  */
 const CustomCursor = () => {
-  const dotRef = useRef(null);
-  const ringRef = useRef(null);
-  const requestRef = useRef(null);
+  const dotRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLDivElement>(null);
+  const requestRef = useRef<number | null>(null);
   
   // Mouse position state
   const mouse = useRef({ x: 0, y: 0 });
@@ -53,7 +53,7 @@ const CustomCursor = () => {
     
     setIsVisible(true);
 
-    const onMouseMove = (e) => {
+    const onMouseMove = (e: any) => {
       mouse.current = { x: e.clientX, y: e.clientY };
       
       // Update dot instantly
@@ -62,9 +62,9 @@ const CustomCursor = () => {
       }
 
       // Check if hovering over clickable
-      const target = e.target;
+      const target = e.target as HTMLElement;
       const isClickable = target.closest('a') || target.closest('button') || window.getComputedStyle(target).cursor === 'pointer';
-      setIsHovering(isClickable);
+      setIsHovering(!!isClickable);
     };
 
     const updateRing = () => {
@@ -113,7 +113,7 @@ const CustomCursor = () => {
  * COMPONENT: Loader
  * Premium loading sequence.
  */
-const Loader = ({ onComplete }) => {
+const Loader = ({ onComplete }: any) => {
   const [progress, setProgress] = useState(0);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [status, setStatus] = useState("INITIALIZING SYSTEM...");
@@ -168,7 +168,7 @@ const Loader = ({ onComplete }) => {
  * COMPONENT: Section
  * Enhanced with scaling and a buttery-smooth cubic-bezier transition.
  */
-const Section = ({ children, id, className = "" }) => {
+const Section = ({ children, id, className = "" }: any) => {
   const ref = useRef(null);
   const isVisible = useOnScreen(ref, "-10%");
 
@@ -189,12 +189,12 @@ const Section = ({ children, id, className = "" }) => {
  * COMPONENT: InteractiveCard
  * Advanced 3D Hover Card with realistic glare, blend modes, and parallax depth.
  */
-const InteractiveCard = ({ children, className = "", innerClassName = "" }) => {
-  const cardRef = useRef(null);
+const InteractiveCard = ({ children, className = "", innerClassName = "" }: any) => {
+  const cardRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = (e: any) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     setMousePos({
@@ -202,12 +202,12 @@ const InteractiveCard = ({ children, className = "", innerClassName = "" }) => {
       y: e.clientY - rect.top,
       width: rect.width,
       height: rect.height
-    });
+    } as any);
   };
 
   // Calculate 3D rotation based on mouse position
-  const rotX = isHovering ? ((mousePos.y / mousePos.height) - 0.5) * -12 : 0;
-  const rotY = isHovering ? ((mousePos.x / mousePos.width) - 0.5) * 12 : 0;
+  const rotX = isHovering ? (((mousePos as any).y / (mousePos as any).height) - 0.5) * -12 : 0;
+  const rotY = isHovering ? (((mousePos as any).x / (mousePos as any).width) - 0.5) * 12 : 0;
 
   return (
     <div
@@ -287,15 +287,17 @@ const NoiseOverlay = () => (
  * Interactive floating particles.
  */
 const ParticleBackground = () => {
-  const canvasRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    let animationFrameId;
-    let particles = [];
+    if (!ctx) return;
+    
+    let animationFrameId: number;
+    let particles: Particle[] = [];
     
     let mouse = { x: 0, y: 0 };
     let targetMouse = { x: 0, y: 0 };
@@ -306,7 +308,7 @@ const ParticleBackground = () => {
       init();
     };
     
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: any) => {
       const x = (e.clientX / window.innerWidth) * 2 - 1;
       const y = (e.clientY / window.innerHeight) * 2 - 1;
       targetMouse.x = x * 20; 
@@ -317,9 +319,18 @@ const ParticleBackground = () => {
     window.addEventListener('mousemove', handleMouseMove);
 
     class Particle {
+      x: number;
+      y: number;
+      size: number;
+      baseX: number;
+      baseY: number;
+      opacity: number;
+      layer: number;
+      color: string;
+
       constructor() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
+        this.x = Math.random() * canvas!.width;
+        this.y = Math.random() * canvas!.height;
         this.size = Math.random() * 2 + 0.5;
         this.baseX = this.x;
         this.baseY = this.y;
@@ -334,10 +345,10 @@ const ParticleBackground = () => {
         const shiftX = mouse.x * (this.layer * 0.3);
         const shiftY = mouse.y * (this.layer * 0.3);
 
-        ctx.fillStyle = `${this.color} ${this.opacity})`;
-        ctx.beginPath();
-        ctx.arc(this.baseX - shiftX, this.baseY - shiftY, this.size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx!.fillStyle = `${this.color} ${this.opacity})`;
+        ctx!.beginPath();
+        ctx!.arc(this.baseX - shiftX, this.baseY - shiftY, this.size, 0, Math.PI * 2);
+        ctx!.fill();
       }
     }
 
@@ -504,7 +515,7 @@ const Hero = () => {
           {/* Main Hero Card (with new 3D logic) */}
           <InteractiveCard className="lg:col-span-8" innerClassName="rounded-[2.5rem] p-6 sm:p-10 md:p-14 flex flex-col justify-center">
             {/* Colorful Inner Glow */}
-            <div className="absolute top-0 right-0 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-gradient-to-bl from-rose-500/20 via-indigo-500/10 to-transparent blur-[80px] rounded-full opacity-60 -z-10"></div>
+            <div className="absolute top-0 right-0 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-gradient-to-bl from-rose-500/20 via-indigo-500/10 to-transparent blur-[80px] rounded-full opacity-60 -z-10 animate-[spin_12s_linear_infinite]"></div>
             
             <div className="flex flex-col items-start h-full">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-teal-500/30 bg-teal-500/10 backdrop-blur-md mb-6 md:mb-8 shadow-[0_0_15px_rgba(45,212,191,0.2)]">
@@ -629,7 +640,7 @@ const AboutSkills = () => {
 /**
  * COMPONENT: ProjectCard
  */
-const ProjectCard = ({ title, desc, tags, link }) => (
+const ProjectCard = ({ title, desc, tags, link }: any) => (
   <InteractiveCard innerClassName="rounded-[2rem] p-6 sm:p-8 md:p-10 flex flex-col h-full group">
     {/* Colorful hover backdrop */}
     <div className="absolute top-0 right-0 w-32 h-32 sm:w-40 sm:h-40 bg-gradient-to-bl from-rose-500/20 to-indigo-500/20 blur-[50px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
@@ -638,7 +649,7 @@ const ProjectCard = ({ title, desc, tags, link }) => (
       <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-rose-400 group-hover:text-white group-hover:bg-rose-500 group-hover:border-rose-400 group-hover:shadow-[0_0_20px_rgba(244,63,94,0.5)] transition-all duration-500">
         <Code size={20} className="sm:w-[24px] sm:h-[24px]" strokeWidth={2} />
       </div>
-      <a href={link} target="_blank" rel="noopener noreferrer" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300">
+      <a href={link} target="_blank" rel="noopener noreferrer" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300 z-30">
         <ArrowUpRight size={18} className="sm:w-[20px] sm:h-[20px] transform group-hover:scale-110 group-hover:text-rose-300 transition-all" strokeWidth={2} />
       </a>
     </div>
@@ -649,7 +660,7 @@ const ProjectCard = ({ title, desc, tags, link }) => (
     </p>
     
     <div className="relative z-10 flex flex-wrap gap-2 mt-auto">
-      {tags.map((tag, idx) => (
+      {tags.map((tag: any, idx: number) => (
         <span key={idx} className="text-[9px] sm:text-[10px] uppercase tracking-widest font-bold text-rose-200 bg-rose-500/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-rose-500/20 group-hover:border-rose-500/50 group-hover:bg-rose-500/20 transition-colors">
           {tag}
         </span>
@@ -713,7 +724,7 @@ const Projects = () => {
               Featured Projects.
             </h2>
           </div>
-          <a href="https://github.com/Threads8" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs sm:text-sm uppercase tracking-widest font-black text-teal-400 hover:text-teal-300 transition-colors group">
+          <a href="https://github.com/Threads8" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs sm:text-sm uppercase tracking-widest font-black text-teal-400 hover:text-teal-300 transition-colors group z-20">
             View Github <ArrowUpRight size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
           </a>
         </div>
@@ -758,7 +769,6 @@ const Experience = () => {
           <InteractiveCard className="lg:col-span-8" innerClassName="rounded-[2.5rem] p-8 sm:p-10 md:p-14">
             <div className="space-y-8 sm:space-y-10 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-[2px] before:bg-gradient-to-b before:from-transparent before:via-rose-500/30 before:to-transparent">
               
-              {/* Item 1 */}
               <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
                 <div className="flex items-center justify-center w-5 h-5 rounded-full border-[4px] border-[#050505] bg-rose-400 group-hover:bg-white group-hover:scale-150 group-hover:shadow-[0_0_15px_rgba(244,63,94,0.8)] transition-all duration-300 absolute left-0 md:left-1/2 md:-translate-x-1/2 shrink-0 z-10"></div>
                 
@@ -772,7 +782,6 @@ const Experience = () => {
                 </div>
               </div>
               
-              {/* Item 2 */}
               <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
                 <div className="flex items-center justify-center w-5 h-5 rounded-full border-[4px] border-[#050505] bg-indigo-500 group-hover:bg-white group-hover:scale-150 group-hover:shadow-[0_0_15px_rgba(99,102,241,0.8)] transition-all duration-300 absolute left-0 md:left-1/2 md:-translate-x-1/2 shrink-0 z-10"></div>
                 
@@ -825,7 +834,6 @@ const Education = () => {
           <InteractiveCard className="lg:col-span-8" innerClassName="rounded-[2.5rem] p-8 sm:p-10 md:p-14">
             <div className="space-y-8 sm:space-y-10 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-[2px] before:bg-gradient-to-b before:from-transparent before:via-indigo-500/30 before:to-transparent">
               
-              {/* Item 1 */}
               <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
                 <div className="flex items-center justify-center w-5 h-5 rounded-full border-[4px] border-[#050505] bg-teal-400 group-hover:bg-white group-hover:scale-150 group-hover:shadow-[0_0_15px_rgba(45,212,191,0.8)] transition-all duration-300 absolute left-0 md:left-1/2 md:-translate-x-1/2 shrink-0 z-10"></div>
                 
@@ -839,7 +847,6 @@ const Education = () => {
                 </div>
               </div>
               
-              {/* Item 2 */}
               <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
                 <div className="flex items-center justify-center w-5 h-5 rounded-full border-[4px] border-[#050505] bg-rose-500 group-hover:bg-white group-hover:scale-150 group-hover:shadow-[0_0_15px_rgba(244,63,94,0.8)] transition-all duration-300 absolute left-0 md:left-1/2 md:-translate-x-1/2 shrink-0 z-10"></div>
                 
@@ -870,8 +877,6 @@ const ResumeDownload = () => {
     <Section id="resume" className="py-12 sm:py-20 px-4 sm:px-6 relative z-10">
       <div className="container mx-auto max-w-4xl text-center">
         <InteractiveCard innerClassName="rounded-[3rem] p-10 sm:p-16 md:p-20 relative overflow-hidden group">
-          
-          {/* Animated Holographic Glow */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-gradient-to-r from-rose-500/20 via-indigo-500/20 to-teal-500/20 blur-[60px] sm:blur-[80px] rounded-full -z-10 group-hover:opacity-100 opacity-50 transition-opacity duration-700 animate-[spin_10s_linear_infinite]"></div>
 
           <span className="text-white/60 font-black tracking-widest uppercase text-[10px] sm:text-xs mb-4 block">
