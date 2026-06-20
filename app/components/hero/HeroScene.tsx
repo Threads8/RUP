@@ -74,6 +74,7 @@ const ConnectionLine = ({ start, end, color = '#6366f1' }: any) => {
   }, [start, end]);
 
   return (
+    // @ts-ignore
     <line ref={ref as any} geometry={geo}>
       <lineBasicMaterial color={color} transparent opacity={0.15} />
     </line>
